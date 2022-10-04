@@ -13,6 +13,7 @@ use std::io::{stderr, stdout, Write};
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
+use sui_types::base_types::SuiAddress;
 
 use anyhow::{anyhow, bail};
 use clap::*;
