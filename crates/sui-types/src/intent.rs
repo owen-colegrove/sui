@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 
+use crate::messages::TransactionData;
+
 #[cfg(test)]
 #[path = "unit_tests/intent_tests.rs"]
 mod intent_tests;

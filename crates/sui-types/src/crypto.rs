@@ -36,6 +36,7 @@ use crate::base_types::{AuthorityName, SuiAddress};
 use crate::committee::{Committee, EpochId};
 use crate::error::{SuiError, SuiResult};
 use crate::intent::{Intent, IntentMessage};
+use crate::intent::{ChainId, Intent, IntentMessage, IntentScope, IntentVersion};
 use crate::sui_serde::{AggrAuthSignature, Base64, Readable, SuiBitmap};
 pub use enum_dispatch::enum_dispatch;
 
@@ -782,6 +783,21 @@ impl Signature {
     pub fn new_temp(value: &[u8], secret: &dyn signature::Signer<Signature>) -> Signature {
         secret.sign(value)
     }
+
+    pub fn new_secure<T>(
+        value: &T,
+        intent: Intent,
+        secret: &dyn signature::Signer<Signature>,
+    ) -> Self
+    where
+        T: Serialize,
+    {
+        secret.sign(
+            &bcs::to_bytes(&IntentMessage::new(intent, value))
+                .expect("Message serialization should not fail"),
+        )
+    }
+>>>>>>> 278e2b756 (crypto: add new_secure for Signature and AuthoritySignature)
 }
 
 impl AsRef<[u8]> for Signature {
