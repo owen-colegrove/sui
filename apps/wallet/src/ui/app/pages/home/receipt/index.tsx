@@ -70,6 +70,10 @@ function ReceiptPage() {
             sender: 'Successfully Sent!',
             receiver: 'Successfully Received!',
         },
+        Pay: {
+            sender: 'Successfully Sent!',
+            receiver: 'Successfully Received!',
+        },
     };
 
     const kind = txnItem?.kind as keyof typeof transfersTxt | undefined;

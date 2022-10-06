@@ -9,12 +9,14 @@ import {
   SuiObject,
   SuiData,
   getMoveObjectType,
+  ObjectId,
+  getObjectId,
 } from './objects';
 import { normalizeSuiObjectId, SuiAddress } from './common';
 
-import BN from 'bn.js';
 import { getOption, Option } from './option';
 import { StructTag } from './sui-bcs';
+import { isSuiMoveObject } from './index.guard';
 
 export const COIN_PACKAGE_ID = '0x2';
 export const COIN_MODULE_NAME = 'coin';
@@ -23,7 +25,10 @@ export const COIN_SPLIT_VEC_FUNC_NAME = 'split_vec';
 export const COIN_JOIN_FUNC_NAME = 'join';
 const COIN_TYPE_ARG_REGEX = /^0x2::coin::Coin<(.+)>$/;
 
-type ObjectData = GetObjectDataResponse | SuiMoveObject | SuiObjectInfo;
+export const SUI_TYPE_ARG = '0x2::sui::SUI';
+
+type ObjectData = ObjectDataFull | SuiObjectInfo;
+type ObjectDataFull = GetObjectDataResponse | SuiMoveObject;
 
 /**
  * Utility class for 0x2::coin
@@ -57,18 +62,113 @@ export class Coin {
     };
   }
 
-  static getBalance(
-    data: GetObjectDataResponse | SuiMoveObject
-  ): BN | undefined {
+  public static getID(obj: ObjectData): ObjectId {
+    if (isSuiMoveObject(obj)) {
+      return obj.fields.id.id;
+    }
+    return getObjectId(obj);
+  }
+
+  /**
+   * Convenience method for select coin objects that has a balance greater than or equal to `amount`
+   *
+   * @param amount coin balance
+   * @param exclude object ids of the coins to exclude
+   * @return a list of coin objects that has balance greater than `amount` in an ascending order
+   */
+  static selectCoinsWithBalanceGreaterThanOrEqual(
+    coins: ObjectDataFull[],
+    amount: bigint,
+    exclude: ObjectId[] = []
+  ): ObjectDataFull[] {
+    return Coin.sortByBalance(
+      coins.filter(
+        (c) => !exclude.includes(Coin.getID(c)) && Coin.getBalance(c)! >= amount
+      )
+    );
+  }
+
+  /**
+   * Convenience method for select a minimal set of coin objects that has a balance greater than
+   * or equal to `amount`. The output can be used for `PayTransaction`
+   *
+   * @param amount coin balance
+   * @param exclude object ids of the coins to exclude
+   * @return a minimal list of coin objects that has a combined balance greater than or equal
+   * to`amount` in an ascending order. If no such set exists, an empty list is returned
+   */
+  static selectCoinSetWithCombinedBalanceGreaterThanOrEqual(
+    coins: ObjectDataFull[],
+    amount: bigint,
+    exclude: ObjectId[] = []
+  ): ObjectDataFull[] {
+    const sortedCoins = Coin.sortByBalance(
+      coins.filter((c) => !exclude.includes(Coin.getID(c)))
+    );
+
+    const total = Coin.totalBalance(sortedCoins);
+    // return empty set if the aggregate balance of all coins is smaller than amount
+    if (total < amount) {
+      return [];
+    } else if (total === amount) {
+      return sortedCoins;
+    }
+
+    return Coin.sortByBalance(Coin.selectCoinSetRecursive(sortedCoins, amount));
+  }
+
+  static totalBalance(coins: ObjectDataFull[]): bigint {
+    return coins.reduce(
+      (partialSum, c) => partialSum + Coin.getBalance(c)!,
+      BigInt(0)
+    );
+  }
+
+  /**
+   * Sort coin by balance in an ascending order
+   */
+  static sortByBalance(coins: ObjectDataFull[]): ObjectDataFull[] {
+    return coins.sort((a, b) =>
+      Coin.getBalance(a)! < Coin.getBalance(b)!
+        ? -1
+        : Coin.getBalance(a)! > Coin.getBalance(b)!
+        ? 1
+        : 0
+    );
+  }
+
+  private static selectCoinSetRecursive(
+    sortedCoins: ObjectDataFull[],
+    amount: bigint,
+    ret: ObjectDataFull[] = []
+  ): ObjectDataFull[] {
+    const coinWithSmallestSufficientBalance = sortedCoins.find(
+      (c) => Coin.getBalance(c)! >= amount
+    );
+    if (coinWithSmallestSufficientBalance) {
+      ret.push(coinWithSmallestSufficientBalance);
+      return ret;
+    }
+    // Add the coin with largest balance to the return set
+    const coinWithLargestBalance = sortedCoins.pop()!;
+    ret.push(coinWithLargestBalance);
+    return Coin.selectCoinSetRecursive(
+      sortedCoins,
+      amount - Coin.getBalance(coinWithLargestBalance)!,
+      ret
+    );
+  }
+
+  static getBalance(data: ObjectDataFull): bigint | undefined {
     if (!Coin.isCoin(data)) {
       return undefined;
     }
     const balance = getObjectFields(data)?.balance;
-    return new BN.BN(balance, 10);
+    return BigInt(balance);
   }
 
-  static getZero(): BN {
-    return new BN.BN('0', 10);
+  static getZero(): bigint {
+    return BigInt(0);
   }
 
   private static getType(data: ObjectData): string | undefined {
