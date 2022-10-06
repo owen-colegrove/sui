@@ -25,6 +25,7 @@ use sui_sdk::{
     },
     SuiClient,
 };
+use sui_types::intent::Intent;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -97,9 +98,11 @@ impl TicTacToe {
             .await?;
 
         // Sign transaction.
-        let signature = self
-            .keystore
-            .sign(&player_x, &create_game_call.to_bytes())?;
+        let signature = self.keystore.sign_secure(
+            &player_x,
+            &create_game_call.to_bytes(),
+            Intent::default(),
+        )?;
 
         // Execute the transaction.
         let response = self
@@ -187,9 +190,11 @@ impl TicTacToe {
                 .await?;
 
             // Sign transaction.
-            let signature = self
-                .keystore
-                .sign(&my_identity, &place_mark_call.to_bytes())?;
+            let signature = self.keystore.sign_secure(
+                &my_identity,
+                &place_mark_call.to_bytes(),
+                Intent::default(),
+            )?;
 
             // Execute the transaction.
             let response = self

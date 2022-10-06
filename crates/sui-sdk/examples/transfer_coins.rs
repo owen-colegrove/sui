@@ -10,6 +10,7 @@ use sui_sdk::{
     },
     SuiClient,
 };
+use sui_types::intent::Intent;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -32,7 +33,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Sign transaction
     let keystore = Keystore::from(FileBasedKeystore::new(&keystore_path)?);
-    let signature = keystore.sign(&my_address, &transfer_tx.to_bytes())?;
+    let signature =
+        keystore.sign_secure(&my_address, &transfer_tx.to_bytes(), Intent::default())?;
 
     // Execute the transaction
     let transaction_response = sui

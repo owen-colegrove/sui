@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 
-use crate::messages::TransactionData;
-
 #[cfg(test)]
 #[path = "unit_tests/intent_tests.rs"]
 mod intent_tests;
@@ -23,6 +21,11 @@ pub enum ChainId {
     Testing = 0,
 }
 
+impl Default for ChainId {
+    fn default() -> Self {
+        Self::Testing
+    }
+}
 pub trait SecureIntent: Serialize + private::SealedIntent {}
 
 #[derive(Serialize_repr, Deserialize_repr, Copy, Clone, PartialEq, Eq, Debug)]
@@ -33,9 +36,11 @@ pub enum IntentScope {
     AuthorityBatch = 2,
     CheckpointSummary = 3,
     PersonalMessage = 4,
+    SenderSignedData = 5,
+    Genesis = 6,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct Intent {
     version: IntentVersion,
     chain_id: ChainId,
@@ -51,11 +56,23 @@ impl Intent {
         }
     }
 
-    pub fn default_with_scope(scope: IntentScope) -> Self {
+    pub fn with_chain_id(mut self, chain_id: ChainId) -> Self {
+        self.chain_id = chain_id;
+        self
+    }
+
+    pub fn with_scope(mut self, scope: IntentScope) -> Self {
+        self.scope = scope;
+        self
+    }
+}
+
+impl Default for Intent {
+    fn default() -> Self {
         Self {
             version: IntentVersion::V0,
             chain_id: ChainId::Testing,
-            scope,
+            scope: IntentScope::TransactionData,
         }
     }
 }

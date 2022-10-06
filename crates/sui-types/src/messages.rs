@@ -10,6 +10,7 @@ use crate::crypto::{
     VerificationObligation,
 };
 use crate::gas::GasCostSummary;
+use crate::intent::Intent;
 use crate::messages_checkpoint::CheckpointFragment;
 use crate::object::{Object, ObjectFormatOptions, Owner, OBJECT_START_VERSION};
 use crate::storage::{DeleteKind, WriteKind};
@@ -671,9 +672,14 @@ impl<S> TransactionEnvelope<S> {
         if self.is_verified || self.signed_data.data.kind.is_system_tx() {
             return Ok(());
         }
-        self.signed_data
-            .tx_signature
-            .verify(&self.signed_data.data, self.signed_data.data.sender)
+        self.signed_data.tx_signature.verify_secure(
+            &self.signed_data.data,
+            Intent::default(),
+            self.signed_data.data.sender,
+        )
+        // self.signed_data
+        //     .tx_signature
+        //     .verify(&self.signed_data.data, self.signed_data.data.sender)
     }
 
     pub fn sender_address(&self) -> SuiAddress {
@@ -1859,7 +1865,6 @@ impl<'a> SignatureAggregator<'a> {
         signature: AuthoritySignature,
     ) -> Result<Option<CertifiedTransaction>, SuiError> {
         signature.verify(&self.partial.signed_data, authority)?;
-
         // Check that each authority only appears once.
         fp_ensure!(
             !self.used_authorities.contains(&authority),

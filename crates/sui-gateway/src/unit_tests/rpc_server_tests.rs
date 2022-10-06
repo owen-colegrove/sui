@@ -186,7 +186,8 @@ async fn test_get_transaction() -> Result<(), anyhow::Error> {
 
         let keystore_path = test_network.network.dir().join(SUI_KEYSTORE_FILENAME);
         let keystore = Keystore::from(FileBasedKeystore::new(&keystore_path)?);
-        let tx = to_sender_signed_transaction(transaction_bytes.to_data()?, keystore.get_key(address)?);
+        let tx =
+            to_sender_signed_transaction(transaction_bytes.to_data()?, keystore.get_key(address)?);
 
         let (tx_bytes, sig_scheme, signature_bytes, pub_key) = tx.to_network_data_for_execution();
 
@@ -195,22 +196,23 @@ async fn test_get_transaction() -> Result<(), anyhow::Error> {
             .await?;
 
         tx_responses.push(response);
-    // test get_transactions_in_range with smaller range
+        // test get_transactions_in_range with smaller range
         http_client.get_recent_transactions(3).await?;
-    assert_eq!(3, tx.len());
+        assert_eq!(3, tx_responses.len());
 
-    // test get_recent_transactions
-    let tx: Vec<(GatewayTxSeqNumber, TransactionDigest)> =
-        http_client.get_recent_transactions(10).await?;
-    assert_eq!(4, tx.len());
+        // test get_recent_transactions
+        let tx: Vec<(GatewayTxSeqNumber, TransactionDigest)> =
+            http_client.get_recent_transactions(10).await?;
+        assert_eq!(4, tx.len());
 
-    // test get_transaction
-    for (_, tx_digest) in tx {
-        let response: SuiTransactionResponse = http_client.get_transaction(tx_digest).await?;
-        assert!(tx_responses.iter().any(
-            |effects| effects.effects.transaction_digest == response.effects.transaction_digest
-        ))
+        // test get_transaction
+        for (_, tx_digest) in tx {
+            let response: SuiTransactionResponse = http_client.get_transaction(tx_digest).await?;
+            assert!(tx_responses
+                .iter()
+                .any(|effects| effects.effects.transaction_digest
+                    == response.effects.transaction_digest))
+        }
     }
-
     Ok(())
 }

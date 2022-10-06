@@ -788,11 +788,11 @@ impl Signature {
         value: &T,
         intent: Intent,
         secret: &dyn signature::Signer<Signature>,
-    ) -> Self
+    ) -> Result<Self, signature::Error>
     where
         T: Serialize,
     {
-        secret.sign(
+        secret.try_sign(
             &bcs::to_bytes(&IntentMessage::new(intent, value))
                 .expect("Message serialization should not fail"),
         )
