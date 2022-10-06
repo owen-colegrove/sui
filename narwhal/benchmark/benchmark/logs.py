@@ -113,6 +113,9 @@ class LogParser:
         commits = self._merge_results([tmp])
 
         configs = {
+            'header_num_of_batches_threshold': int(
+                search(r'Header number of batches threshold set to .* (\d+)', log).group(1)
+            ),
             'max_header_num_of_batches': int(
                 search(r'Header max number of batches set to .* (\d+)', log).group(1)
             ),
@@ -197,6 +200,7 @@ class LogParser:
         return mean(latency) if latency else 0
 
     def result(self):
+        header_num_of_batches_threshold = self.configs[0]['header_num_of_batches_threshold']
         max_header_num_of_batches = self.configs[0]['max_header_num_of_batches']
         max_header_delay = self.configs[0]['max_header_delay']
         gc_depth = self.configs[0]['gc_depth']
@@ -225,6 +229,7 @@ class LogParser:
             f' Transaction size: {self.size[0]:,} B\n'
             f' Execution time: {round(duration):,} s\n'
             '\n'
+            f' Header number of batches threshold: {header_num_of_batches_threshold:,} B\n'
             f' Header maximum number of batches: {max_header_num_of_batches:,} B\n'
             f' Max header delay: {max_header_delay:,} ms\n'
             f' GC depth: {gc_depth:,} round(s)\n'

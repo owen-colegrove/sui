@@ -164,7 +164,7 @@ fn parameters_snapshot_matches() {
 fn parameters_import_snapshot_matches() {
     // GIVEN
     let input = r#"{
-         "max_header_num_of_batches": 32,
+         "max_header_num_of_batches": 100,
          "max_header_delay": "100ms",
          "gc_depth": 50,
          "sync_retry_delay": "5s",

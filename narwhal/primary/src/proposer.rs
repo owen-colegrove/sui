@@ -4,7 +4,7 @@
 use crate::{metrics::PrimaryMetrics, NetworkModel};
 use config::{Committee, Epoch, WorkerId};
 use crypto::{PublicKey, Signature};
-use fastcrypto::{Digest, Hash as _, SignatureService};
+use fastcrypto::{Hash as _, SignatureService};
 use std::{cmp::Ordering, sync::Arc};
 use tokio::{
     sync::watch,
@@ -30,6 +30,11 @@ pub struct Proposer {
     committee: Committee,
     /// Service to sign headers.
     signature_service: SignatureService<Signature>,
+    /// The threshold number of batches that can trigger
+    /// a header creation. When there are available at least
+    /// `header_num_of_batches_threshold` batches we are ok
+    /// to try and propose a header
+    header_num_of_batches_threshold: usize,
     /// The maximum number of batches in header.
     max_header_num_of_batches: usize,
     /// The maximum delay to wait for batches' digests.
@@ -54,8 +59,6 @@ pub struct Proposer {
     last_leader: Option<Certificate>,
     /// Holds the batches' digests waiting to be included in the next header.
     digests: Vec<(BatchDigest, WorkerId)>,
-    /// Keeps track of the size (in bytes) of batches' digests that we received so far.
-    payload_size: usize,
     /// Metrics handler
     metrics: Arc<PrimaryMetrics>,
 }
@@ -67,6 +70,7 @@ impl Proposer {
         name: PublicKey,
         committee: Committee,
         signature_service: SignatureService<Signature>,
+        header_num_of_batches_threshold: usize,
         max_header_num_of_batches: usize,
         max_header_delay: Duration,
         network_model: NetworkModel,
@@ -82,6 +86,7 @@ impl Proposer {
                 name,
                 committee,
                 signature_service,
+                header_num_of_batches_threshold,
                 max_header_num_of_batches,
                 max_header_delay,
                 network_model,
@@ -93,7 +98,6 @@ impl Proposer {
                 last_parents: genesis,
                 last_leader: None,
                 digests: Vec::with_capacity(2 * max_header_num_of_batches),
-                payload_size: 0,
                 metrics,
             }
             .run()
@@ -103,11 +107,12 @@ impl Proposer {
 
     async fn make_header(&mut self) -> DagResult<()> {
         // Make a new header.
+        let num_of_digests = self.digests.len().min(self.max_header_num_of_batches);
         let header = Header::new(
             self.name.clone(),
             self.round,
             self.committee.epoch(),
-            self.digests.drain(..).collect(),
+            self.digests.drain(..num_of_digests).collect(),
             self.last_parents.drain(..).map(|x| x.digest()).collect(),
             &mut self.signature_service,
         )
@@ -231,9 +236,9 @@ impl Proposer {
             // (i) the timer expired (we timed out on the leader or gave up gather votes for the leader),
             // (ii) we have enough digests (minimum header size) and we are on the happy path (we can vote for
             // the leader or the leader has enough votes to enable a commit). The latter condition only matters
-            // in partially synchrony.
+            // in partially synchrony. We guarantee that no more than max_header_num_of_batches are included in
             let enough_parents = !self.last_parents.is_empty();
-            let enough_digests = self.payload_size >= self.max_header_num_of_batches;
+            let enough_digests = self.digests.len() >= self.header_num_of_batches_threshold;
             let mut timer_expired = timer.is_elapsed();
 
             if (timer_expired || (enough_digests && advance)) && enough_parents {
@@ -260,7 +265,6 @@ impl Proposer {
                     Err(e) => panic!("Unexpected error: {e}"),
                     Ok(()) => (),
                 }
-                self.payload_size = 0;
 
                 // Reschedule the timer.
                 let deadline = self.timeout_value();
@@ -323,7 +327,6 @@ impl Proposer {
 
                 // Receive digests from our workers.
                 Some((digest, worker_id)) = self.rx_workers.recv() => {
-                    self.payload_size += Digest::from(digest).size();
                     self.digests.push((digest, worker_id));
                 }
 
