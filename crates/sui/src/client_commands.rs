@@ -326,7 +326,7 @@ impl SuiClientCommands {
                     .await?;
                 let signature = context.config.keystore.sign_secure(
                     &sender,
-                    &data.to_bytes(),
+                    &data,
                     Intent::default(),
                 )?;
                 let response = context
@@ -373,7 +373,7 @@ impl SuiClientCommands {
                     .await?;
                 let signature = context.config.keystore.sign_secure(
                     &from,
-                    &data.to_bytes(),
+                    &data,
                     Intent::default(),
                 )?;
                 let response = context
@@ -404,7 +404,7 @@ impl SuiClientCommands {
                     .await?;
                 let signature = context.config.keystore.sign_secure(
                     &from,
-                    &data.to_bytes(),
+                    &data,
                     Intent::default(),
                 )?;
                 let response = context
@@ -450,7 +450,7 @@ impl SuiClientCommands {
                     .await?;
                 let signature = context.config.keystore.sign_secure(
                     &from,
-                    &data.to_bytes(),
+                    &data,
                     Intent::default(),
                 )?;
                 let response = context
@@ -545,7 +545,7 @@ impl SuiClientCommands {
                 };
                 let signature = context.config.keystore.sign_secure(
                     &signer,
-                    &data.to_bytes(),
+                    &data,
                     Intent::default(),
                 )?;
                 let response = context
@@ -567,7 +567,7 @@ impl SuiClientCommands {
                     .await?;
                 let signature = context.config.keystore.sign_secure(
                     &signer,
-                    &data.to_bytes(),
+                    &data,
                     Intent::default(),
                 )?;
                 let response = context
