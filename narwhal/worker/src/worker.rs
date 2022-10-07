@@ -244,7 +244,7 @@ impl Worker {
         );
         let worker_flow_handles = worker.handle_workers_messages(
             &tx_reconfigure,
-            tx_primary.clone(),
+            tx_primary,
             rx_worker_processor,
         );
         let primary_flow_handles =
