@@ -58,7 +58,7 @@ function TxForIDStatic({
     category: categoryType;
 }) {
     const data = deduplicate(
-        findTxfromID(id)?.data as [number, string][] | undefined
+        findTxfromID(id)?.data as string[] | undefined
     )
         .map((id) => findTxDatafromID(id))
         .filter((x) => x !== undefined) as TxnData[];
