@@ -65,8 +65,7 @@ type TxResultByAddress = TxResultState[];
 // Remove duplicate transactionsId, reduces the number of RPC calls
 const deduplicate = (results: string[] | undefined) =>
     results
-        ? results
-              .filter((value, index, self) => self.indexOf(value) === index)
+        ? results.filter((value, index, self) => self.indexOf(value) === index)
         : [];
 
 // TODO: This is a temporary solution to get the NFT data from Call txn
@@ -95,9 +94,8 @@ export const getTransactionsByAddress = createAsyncThunk<
             return [];
         }
         // Get all transactions txId for address
-        const transactions: GetTxnDigestsResponse = (
-            await api.instance.fullNode.getTransactionsForAddress(address)
-        );
+        const transactions: GetTxnDigestsResponse =
+            await api.instance.fullNode.getTransactionsForAddress(address);
 
         if (!transactions || !transactions.length) {
             return [];
