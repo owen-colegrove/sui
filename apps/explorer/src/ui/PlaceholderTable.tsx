@@ -1,8 +1,9 @@
 // Copyright (c) 2022, Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import TableCard from '../../components/table/TableCard';
-import placeholdertheme from '../../styles/placeholder.module.css';
+import TableCard from './TableCard';
+
+import placeholdertheme from './placeholder.module.css';
 
 type DataType = {
     rowCount: number;

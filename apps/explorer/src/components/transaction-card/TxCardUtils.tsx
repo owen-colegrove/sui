@@ -16,7 +16,12 @@ import {
     type TransactionKindName,
 } from '@mysten/sui.js';
 import BN from 'bn.js';
+import { Fragment } from 'react';
 
+import { ReactComponent as ContentSuccessStatus } from '../../assets/SVGIcons/12px/Check.svg';
+import { ReactComponent as ContentFailedStatus } from '../../assets/SVGIcons/12px/X.svg';
+import { ReactComponent as ContentArrowRight } from '../../assets/SVGIcons/16px/ArrowRight.svg';
+import Longtext from '../../components/longtext/Longtext';
 import { DefaultRpcClient } from '../../utils/api/DefaultRpcClient';
 import { type Network } from '../../utils/api/rpcSetting';
 import { numberSuffix } from '../../utils/numberUtil';
@@ -38,29 +43,104 @@ export type TxnData = {
     timestamp_ms?: number;
 };
 
+export type LinkObj = {
+    url: string;
+    name?: string;
+    copy?: boolean;
+    category?: string;
+    isLink?: boolean;
+};
+
+type Category =
+    | 'objects'
+    | 'transactions'
+    | 'addresses'
+    | 'ethAddress'
+    | 'unknown';
+
+type TxStatus = {
+    txTypeName: TransactionKindName | undefined;
+    status: ExecutionStatusType;
+};
+
 export function SuiAmount({ amount }: { amount: BN | string | undefined }) {
     if (amount) {
         const SuiSuffix = <abbr className={styles.suisuffix}>SUI</abbr>;
 
         if (BN.isBN(amount)) {
             return (
-                <span>
-                    {presentBN(amount)}
-                    {SuiSuffix}
-                </span>
+                <section>
+                    <span>
+                        {presentBN(amount)}
+                        {SuiSuffix}
+                    </span>
+                </section>
             );
         }
         if (typeof amount === 'string') {
             return (
-                <span className={styles.suiamount}>
-                    {amount}
-                    {SuiSuffix}
-                </span>
+                <section>
+                    <span className={styles.suiamount}>
+                        {amount}
+                        {SuiSuffix}
+                    </span>
+                </section>
             );
         }
     }
 
     return <span className={styles.suiamount}>--</span>;
+}
+
+export function TxAddresses({ content }: { content: LinkObj[] }) {
+    return (
+        <section className={styles.addresses}>
+            {content.map((itm, idx) => (
+                <Fragment key={idx + itm.url}>
+                    <Longtext
+                        text={itm.url}
+                        alttext={itm.name}
+                        category={(itm.category as Category) || 'unknown'}
+                        isLink={itm?.isLink}
+                        copyButton={itm?.copy ? '16' : 'none'}
+                    />
+                    {idx !== content.length - 1 && <ContentArrowRight />}
+                </Fragment>
+            ))}
+        </section>
+    );
+}
+
+function TxStatusType({ content }: { content: TxStatus }) {
+    const TxStatus = {
+        success: ContentSuccessStatus,
+        fail: ContentFailedStatus,
+    };
+    const TxResultStatus =
+        content.status === 'success' ? TxStatus.success : TxStatus.fail;
+    return (
+        <section className={styles.statuswrapper}>
+            <div
+                className={
+                    content.status === 'success' ? styles.success : styles.fail
+                }
+            >
+                <TxResultStatus /> <div>{content.txTypeName}</div>
+            </div>
+        </section>
+    );
+}
+
+function TxTimeType({ timestamp }: { timestamp: number | undefined }) {
+    return (
+        <section>
+            <div
+                style={{
+                    width: '85px',
+                }}
+            >{`${timeAgo(timestamp, undefined, true)} ago`}</div>
+        </section>
+    );
 }
 
 // Generate table data from the transaction data
@@ -70,46 +150,52 @@ export const genTableDataFromTxData = (
 ) => {
     return {
         data: results.map((txn) => ({
-            date: (
-                <div
-                    style={{
-                        width: '85px',
-                    }}
-                >{`${timeAgo(txn.timestamp_ms, undefined, true)} ago`}</div>
+            date: <TxTimeType timestamp={txn.timestamp_ms} />,
+            transactionId: (
+                <TxAddresses
+                    content={[
+                        {
+                            url: txn.txId,
+                            name: truncate(txn.txId, truncateLength),
+                            category: 'transactions',
+                            isLink: true,
+                            copy: false,
+                        },
+                    ]}
+                />
             ),
-            transactionId: [
-                {
-                    url: txn.txId,
-                    name: truncate(txn.txId, truncateLength),
-                    category: 'transactions',
-                    isLink: true,
-                    copy: false,
-                },
-            ],
-            addresses: [
-                {
-                    url: txn.From,
-                    name: truncate(txn.From, truncateLength),
-                    category: 'addresses',
-                    isLink: true,
-                    copy: false,
-                },
-                ...(txn.To
-                    ? [
-                          {
-                              url: txn.To,
-                              name: truncate(txn.To, truncateLength),
-                              category: 'addresses',
-                              isLink: true,
-                              copy: false,
-                          },
-                      ]
-                    : []),
-            ],
-            txTypes: {
-                txTypeName: txn.kind,
-                status: txn.status,
-            },
+            addresses: (
+                <TxAddresses
+                    content={[
+                        {
+                            url: txn.From,
+                            name: truncate(txn.From, truncateLength),
+                            category: 'addresses',
+                            isLink: true,
+                            copy: false,
+                        },
+                        ...(txn.To
+                            ? [
+                                  {
+                                      url: txn.To,
+                                      name: truncate(txn.To, truncateLength),
+                                      category: 'addresses',
+                                      isLink: true,
+                                      copy: false,
+                                  },
+                              ]
+                            : []),
+                    ]}
+                />
+            ),
+            txTypes: (
+                <TxStatusType
+                    content={{
+                        txTypeName: txn.kind,
+                        status: txn.status,
+                    }}
+                />
+            ),
             amounts: <SuiAmount amount={txn.suiAmount} />,
             gas: <SuiAmount amount={numberSuffix(txn.txGas)} />,
         })),
