@@ -352,6 +352,12 @@ impl Proposer {
 
                 }
             }
+
+            // update metrics
+            self.metrics
+                .num_of_pending_batches_in_proposer
+                .with_label_values(&[&self.committee.epoch.to_string()])
+                .set(self.digests.len() as i64);
         }
     }
 }

@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 use super::*;
 use fastcrypto::traits::KeyPair;
+use indexmap::IndexMap;
 use prometheus::Registry;
-use test_utils::CommitteeFixture;
+use test_utils::{fixture_payload, CommitteeFixture};
 
 #[tokio::test]
 async fn propose_empty() {
@@ -28,7 +29,8 @@ async fn propose_empty() {
         name,
         committee.clone(),
         signature_service,
-        /* max_header_num_of_batches */ 32,
+        /* header_num_of_batches_threshold */ 32,
+        /* max_header_num_of_batches */ 100,
         /* max_header_delay */ Duration::from_millis(20),
         NetworkModel::PartiallySynchronous,
         rx_reconfigure,
@@ -56,18 +58,21 @@ async fn propose_payload() {
 
     let (_tx_reconfigure, rx_reconfigure) =
         watch::channel(ReconfigureNotification::NewEpoch(committee.clone()));
-    let (_tx_parents, rx_parents) = test_utils::test_channel!(1);
+    let (tx_parents, rx_parents) = test_utils::test_channel!(1);
     let (tx_our_digests, rx_our_digests) = test_utils::test_channel!(1);
     let (tx_headers, mut rx_headers) = test_utils::test_channel!(1);
 
     let metrics = Arc::new(PrimaryMetrics::new(&Registry::new()));
+
+    let max_num_of_batches = 10;
 
     // Spawn the proposer.
     let _proposer_handle = Proposer::spawn(
         name.clone(),
         committee.clone(),
         signature_service,
-        /* max_header_num_of_batches */ 1,
+        /* header_num_of_batches_threshold */ 1,
+        /* max_header_num_of_batches */ max_num_of_batches,
         /* max_header_delay */
         Duration::from_millis(1_000_000), // Ensure it is not triggered.
         NetworkModel::PartiallySynchronous,
@@ -91,4 +96,27 @@ async fn propose_payload() {
     assert_eq!(header.round, 1);
     assert_eq!(header.payload.get(&digest), Some(&worker_id));
     assert!(header.verify(&committee, shared_worker_cache).is_ok());
+
+    // WHEN available batches are more than the maximum ones
+    let batches: IndexMap<BatchDigest, WorkerId> = fixture_payload((max_num_of_batches * 2) as u8);
+
+    for (batch_id, worker_id) in batches {
+        tx_our_digests.send((batch_id, worker_id)).await.unwrap();
+    }
+
+    // AND send some parents to advance the round
+    let parents: Vec<_> = fixture
+        .headers()
+        .iter()
+        .take(4)
+        .map(|h| fixture.certificate(h))
+        .collect();
+
+    let result = tx_parents.send((parents, 1, 0)).await;
+    assert!(result.is_ok());
+
+    // THEN the header should contain max_num_of_batches
+    let header = rx_headers.recv().await.unwrap();
+    assert_eq!(header.round, 2);
+    assert_eq!(header.payload.len(), max_num_of_batches);
 }
