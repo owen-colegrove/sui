@@ -29,8 +29,8 @@ use sui_json_rpc::api::TransactionExecutionApiClient;
 use sui_json_rpc::api::WalletSyncApiClient;
 pub use sui_json_rpc_types as rpc_types;
 use sui_json_rpc_types::{
-    GetObjectDataResponse, GetRawObjectDataResponse, Page, SuiEventEnvelope, SuiEventFilter,
-    SuiObjectInfo, SuiTransactionResponse, TxSeqNumber,
+    GetObjectDataResponse, GetRawObjectDataResponse, SuiEventEnvelope, SuiEventFilter,
+    SuiObjectInfo, SuiTransactionResponse, TransactionsPage,
 };
 pub use sui_types as types;
 use sui_types::base_types::{ObjectID, SuiAddress, TransactionDigest};
@@ -284,7 +284,7 @@ impl ReadApi {
     pub async fn get_recent_transactions(
         &self,
         count: u64,
-    ) -> anyhow::Result<Vec<(TxSeqNumber, TransactionDigest)>> {
+    ) -> anyhow::Result<Vec<TransactionDigest>> {
         Ok(match &*self.api {
             SuiClientApi::Rpc(c) => c.http.get_recent_transactions(count).await?,
             SuiClientApi::Embedded(c) => c.get_recent_transactions(count)?,
@@ -308,9 +308,9 @@ impl FullNodeApi {
     pub async fn get_transactions(
         &self,
         query: TransactionQuery,
-        cursor: Option<TxSeqNumber>,
+        cursor: Option<TransactionDigest>,
         limit: Option<usize>,
-    ) -> anyhow::Result<Page<(TxSeqNumber, TransactionDigest), TxSeqNumber>> {
+    ) -> anyhow::Result<TransactionsPage> {
         Ok(match &*self.0 {
             SuiClientApi::Rpc(c) => c.http.get_transactions(query, cursor, limit).await?,
             SuiClientApi::Embedded(_) => {

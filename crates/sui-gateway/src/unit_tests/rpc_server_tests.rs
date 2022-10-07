@@ -6,7 +6,6 @@ use std::{path::Path, str::FromStr};
 use move_package::BuildConfig;
 
 use sui_config::SUI_KEYSTORE_FILENAME;
-use sui_core::gateway_state::TxSeqNumber;
 use sui_framework::build_move_package_to_bytes;
 use sui_json::SuiJsonValue;
 use sui_json_rpc::api::RpcFullNodeReadApiClient;
@@ -215,26 +214,27 @@ async fn test_get_transaction() -> Result<(), anyhow::Error> {
     }
     // test get_transactions_in_range
     let tx: TransactionsPage = http_client
-        .get_transactions(TransactionQuery::All, Some(0), Some(10))
+        .get_transactions(TransactionQuery::All, None, Some(10))
         .await?;
     assert_eq!(4, tx.data.len());
 
     // test get_transactions_in_range with smaller range
+    let second_tx = tx.data[1];
     let tx: TransactionsPage = http_client
-        .get_transactions(TransactionQuery::All, Some(1), Some(2))
+        .get_transactions(TransactionQuery::All, Some(second_tx), Some(2))
         .await?;
     assert_eq!(2, tx.data.len());
 
     // test get_recent_transactions with smaller range
-    let tx: Vec<(TxSeqNumber, TransactionDigest)> = http_client.get_recent_transactions(3).await?;
+    let tx: Vec<TransactionDigest> = http_client.get_recent_transactions(3).await?;
     assert_eq!(3, tx.len());
 
     // test get_recent_transactions
-    let tx: Vec<(TxSeqNumber, TransactionDigest)> = http_client.get_recent_transactions(10).await?;
+    let tx: Vec<TransactionDigest> = http_client.get_recent_transactions(10).await?;
     assert_eq!(4, tx.len());
 
     // test get_transaction
-    for (_, tx_digest) in tx {
+    for tx_digest in tx {
         let response: SuiTransactionResponse = http_client.get_transaction(tx_digest).await?;
         assert!(tx_responses.iter().any(
             |effects| effects.effects.transaction_digest == response.effects.transaction_digest
