@@ -276,11 +276,11 @@ export class JsonRpcProvider extends Provider {
     const requests = [
       {
         method: 'sui_getTransactions',
-        args: [{"InputObject": objectID}],
+        args: [{ InputObject: objectID }],
       },
       {
         method: 'sui_getTransactions',
-        args: [{"MutatedObject":objectID}],
+        args: [{ MutatedObject: objectID }],
       },
     ];
 
@@ -304,11 +304,11 @@ export class JsonRpcProvider extends Provider {
     const requests = [
       {
         method: 'sui_getTransactions',
-        args: [{"ToAddress": addressID}],
+        args: [{ ToAddress: addressID }],
       },
       {
         method: 'sui_getTransactions',
-        args: [{"FromAddress":addressID}],
+        args: [{ FromAddress: addressID }],
       },
     ];
 
