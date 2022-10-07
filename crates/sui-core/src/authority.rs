@@ -2,7 +2,6 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::anyhow;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::{
@@ -14,6 +13,7 @@ use std::{
     },
 };
 
+use anyhow::anyhow;
 use arc_swap::ArcSwap;
 use async_trait::async_trait;
 use chrono::prelude::*;
@@ -56,7 +56,6 @@ use sui_storage::{
 use sui_types::committee::EpochId;
 use sui_types::crypto::{AuthorityKeyPair, NetworkKeyPair};
 use sui_types::filter::TransactionQuery;
-
 use sui_types::messages_checkpoint::{
     CheckpointRequest, CheckpointRequestType, CheckpointResponse,
 };
@@ -1635,16 +1634,16 @@ impl AuthorityState {
             } => self
                 .get_indexes()?
                 .get_transactions_by_move_function(package, module, function, cursor, limit)?,
-            TransactionQuery::InputObject { object_id } => self
+            TransactionQuery::InputObject(object_id) => self
                 .get_indexes()?
                 .get_transactions_by_input_object(object_id, cursor, limit)?,
-            TransactionQuery::MutatedObject { object_id } => self
+            TransactionQuery::MutatedObject(object_id) => self
                 .get_indexes()?
                 .get_transactions_by_mutated_object(object_id, cursor, limit)?,
-            TransactionQuery::FromAddress { address } => self
+            TransactionQuery::FromAddress(address) => self
                 .get_indexes()?
                 .get_transactions_from_addr(address, cursor, limit)?,
-            TransactionQuery::ToAddress { address } => self
+            TransactionQuery::ToAddress(address) => self
                 .get_indexes()?
                 .get_transactions_to_addr(address, cursor, limit)?,
             TransactionQuery::All => {

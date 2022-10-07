@@ -275,12 +275,12 @@ export class JsonRpcProvider extends Provider {
   ): Promise<GetTxnDigestsResponse> {
     const requests = [
       {
-        method: 'sui_getTransactionsByInputObject',
-        args: [objectID],
+        method: 'sui_getTransactions',
+        args: [{"InputObject": objectID}],
       },
       {
-        method: 'sui_getTransactionsByMutatedObject',
-        args: [objectID],
+        method: 'sui_getTransactions',
+        args: [{"MutatedObject":objectID}],
       },
     ];
 
@@ -303,12 +303,12 @@ export class JsonRpcProvider extends Provider {
   ): Promise<GetTxnDigestsResponse> {
     const requests = [
       {
-        method: 'sui_getTransactionsToAddress',
-        args: [addressID],
+        method: 'sui_getTransactions',
+        args: [{"ToAddress": addressID}],
       },
       {
-        method: 'sui_getTransactionsFromAddress',
-        args: [addressID],
+        method: 'sui_getTransactions',
+        args: [{"FromAddress":addressID}],
       },
     ];
 
