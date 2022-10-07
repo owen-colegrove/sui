@@ -156,6 +156,8 @@ pub fn test_authority_aggregator(
 ) -> AuthorityAggregator<NetworkAuthorityClient> {
     let validators_info = config.validator_set();
     let committee = Committee::new(0, ValidatorInfo::voting_rights(validators_info)).unwrap();
+    let registry = prometheus::Registry::new();
+    let network_metrics = Arc::new(NetworkAuthorityClientMetrics::new(&registry));
     let clients: BTreeMap<_, _> = validators_info
         .iter()
         .map(|config| {
@@ -163,19 +165,19 @@ pub fn test_authority_aggregator(
                 config.protocol_key(),
                 NetworkAuthorityClient::connect_lazy(
                     config.network_address(),
-                    Arc::new(NetworkAuthorityClientMetrics::new_for_tests()),
+                    network_metrics.clone(),
                 )
                 .unwrap(),
             )
         })
         .collect();
-    let registry = prometheus::Registry::new();
     AuthorityAggregator::new(
         committee,
         committee_store,
         clients,
         AuthAggMetrics::new(&registry),
-        SafeClientMetrics::new(&registry),
+        Arc::new(SafeClientMetrics::new(&registry)),
+        network_metrics,
     )
 }
 
