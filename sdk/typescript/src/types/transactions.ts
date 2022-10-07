@@ -153,7 +153,7 @@ export type SuiExecuteTransactionResponse =
 
 export type GatewayTxSeqNumber = number;
 
-export type GetTxnDigestsResponse = [TransactionDigest][];
+export type GetTxnDigestsResponse = TransactionDigest[];
 
 export type MoveCall = {
   package: SuiObjectRef;
